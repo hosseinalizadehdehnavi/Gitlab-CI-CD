@@ -1,0 +1,151 @@
+stages:
+  - build
+  - test
+  - deploy
+
+
+build_vote_service:
+  stage: build
+  tags:
+    - develop
+  image: docker:20.10.16-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - echo "Building the vote service..."
+    - cd vote
+    - docker build -t "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA" .
+    - echo "Pushing image to the registry..."
+    - docker push "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - vote/**/*
+
+build_result_service:
+  stage: build
+  tags:
+    - develop
+  image: docker:20.10.16-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - echo "Building the result service..."
+    - cd result
+    - docker build -t "$CI_REGISTRY_IMAGE/result:$CI_COMMIT_SHORT_SHA" .
+    - echo "Pushing image to the registry..."
+    - docker push "$CI_REGISTRY_IMAGE/result:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - result/**/*
+
+build_seed-data_service:
+  stage: build
+  tags:
+    - develop
+  image: docker:20.10.16-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - echo "Building the seed-data service..."
+    - cd seed-data
+    - docker build -t "$CI_REGISTRY_IMAGE/seed-data:$CI_COMMIT_SHORT_SHA" .
+    - echo "Pushing image to the registry..."
+    - docker push "$CI_REGISTRY_IMAGE/seed-data:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - seed-data/**/*
+
+build_worker_service:
+  stage: build
+  tags:
+    - develop
+  image: docker:20.10.16-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - echo "Building the worker service..."
+    - cd worker
+    - docker build -t "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA" .
+    - echo "Pushing image to the registry..."
+    - docker push "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - worker/**/*
+
+
+container_scanning:
+  stage: test
+  image:
+    name: aquasec/trivy:0.65.0
+    entrypoint: [""]
+  tags:
+    - develop
+  variables:
+    TRIVY_USERNAME: "$CI_REGISTRY_USER"
+    TRIVY_PASSWORD: "$CI_REGISTRY_PASSWORD"
+    TRIVY_AUTH_URL: "$CI_REGISTRY"
+    GIT_STRATEGY: none
+  script:
+    - echo "Scanning vote service image for CRITICAL and HIGH vulnerabilities..."
+    - trivy image --exit-code 1 --severity CRITICAL,HIGH "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA"
+    - echo "Scanning result service image for CRITICAL and HIGH vulnerabilities..."
+    - trivy image --exit-code 1 --severity CRITICAL,HIGH "$CI_REGISTRY_IMAGE/result:$CI_COMMIT_SHORT_SHA"
+    - echo "Scanning seed-data service image for CRITICAL and HIGH vulnerabilities..."
+    - trivy image --exit-code 1 --severity CRITICAL,HIGH "$CI_REGISTRY_IMAGE/seed-data:$CI_COMMIT_SHORT_SHA"
+    - echo "Scanning worker service image for CRITICAL and HIGH vulnerabilities..."
+    - trivy image --exit-code 1 --severity CRITICAL,HIGH "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - vote/**/*
+        - result/**/*
+        - seed-data/**/*
+        - worker/**/*
+
+deploy_staging:
+  stage: deploy
+  image: alpine:latest
+  tags: ["develop"]
+  before_script:
+    - apk update && apk add openssh-client
+    - echo "$ID_RSA" > id_rsa
+    - chmod 600 id_rsa
+  script:
+    - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY"
+    - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /srv/voting-app-staging"
+    - scp -i id_rsa -o StrictHostKeyChecking=no ./docker-compose.staging.yml $SERVER_USER@$SERVER_IP:/srv/voting-app-staging/docker-compose.yml
+    - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd /srv/voting-app-staging && export CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE && export CI_COMMIT_SHORT_SHA=$CI_COMMIT_SHORT_SHA && docker compose pull && docker compose up -d --remove-orphans && docker compose run --rm seed"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - vote/**/*
+        - seed-data/**/*
+        - result/**/*
+        - worker/**/*
+
+
+deploy_production:
+  stage: deploy
+  image: alpine:latest
+  tags: ["develop"]
+  before_script:
+    - apk update && apk add openssh-client
+    - echo "$ID_RSA" > id_rsa
+    - chmod 600 id_rsa
+  script:
+    - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY"
+    - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /srv/voting-app-production"
+    - scp -i id_rsa -o StrictHostKeyChecking=no ./docker-compose.prod.yml $SERVER_USER@$SERVER_IP:/srv/voting-app-production/docker-compose.yml
+    - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd /srv/voting-app-production && export CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE && export CI_COMMIT_SHORT_SHA=$CI_COMMIT_SHORT_SHA && docker compose pull && docker compose up -d --remove-orphans && docker compose run --rm seed"
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - vote/**/*
+        - seed-data/**/*
+        - result/**/*
+        - worker/**/*

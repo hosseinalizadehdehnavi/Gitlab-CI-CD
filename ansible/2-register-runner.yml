@@ -1,0 +1,56 @@
+---
+- name: Register GitLab Runner (Custom Method)
+  hosts: localhost
+  connection: local
+  become: yes
+
+  vars_prompt:
+    - name: gitlab_runner_token
+      prompt: "Please enter the GitLab Runner registration token (it will not be echoed)"
+      private: yes
+
+  tasks:
+    - name: Fetch GitLab SSL certificate for the runner
+      ansible.builtin.shell:
+        cmd: >
+          openssl s_client -showcerts -connect {{ gitlab_hostname }}:443 </dev/null 2>/dev/null |
+          openssl x509 -outform PEM > {{ cert_file_path }}
+        creates: "{{ cert_file_path }}"
+      changed_when: false
+      tags:
+        - certs
+
+    - name: Restart the GitLab Runner container via docker-compose
+      ansible.builtin.shell:
+        cmd: docker compose restart gitlab-runner
+        chdir: "{{ gitlab_base_dir }}"
+      changed_when: true
+      changed_when: true
+      tags:
+        - service_restart
+
+    - name: Wait for 20 seconds for the runner to initialize
+      ansible.builtin.pause:
+        seconds: 20
+
+    - name: Register the runner with the GitLab instance
+      community.docker.docker_container_exec:
+        container: "{{ runner_container_name }}"
+        command: >
+          gitlab-runner register
+          --non-interactive
+          --url "https://{{ gitlab_hostname }}"
+          --token "{{ gitlab_runner_token }}"
+          --executor "{{ runner_executor }}"
+          --docker-image "{{ runner_docker_image }}"
+          --description "{{ runner_description }}"
+      register: registration_result
+      tags:
+        - register_runner
+
+    - name: Show registration result
+      ansible.builtin.debug:
+        vair: registration_result.stdout
+      tags:
+        - register_runner
+        - debug

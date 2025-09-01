@@ -1,0 +1,63 @@
+services:
+  gitlab:
+    image: {{ gitlab_image }}
+    container_name: {{ gitlab_container_name }}
+    hostname: {{ gitlab_hostname }}
+    ports:
+      - '{{ gitlab_http_port }}:80'
+      - '{{ gitlab_https_port }}:443'
+      - '{{ gitlab_ssh_port }}:22'
+      - '{{ gitlab_registry_port }}:5050'
+    volumes:
+      - gitlab_config_badesaba:/etc/gitlab
+      - gitlab_logs_badesaba:/var/log/gitlab
+      - gitlab_data_badesaba:/var/opt/gitlab
+    environment:
+      GITLAB_ROOT_PASSWORD: '{{ gitlab_root_password }}'
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url '{{ gitlab_external_url }}'
+        letsencrypt['enable'] = {{ gitlab_letsencrypt_enable | lower }}
+        gitlab_rails['gitlab_shell_ssh_port'] = {{ gitlab_ssh_port }}
+        registry_external_url '{{ gitlab_registry_external_url }}'
+        prometheus['enable'] = {{ gitlab_prometheus_enable | lower }}
+        alertmanager['enable'] = {{ gitlab_alertmanager_enable | lower }}
+        gitlab_kas['enable'] = {{ gitlab_kas_enable | lower }}
+    networks:
+      {{ network_name }}:
+        ipv4_address: {{ gitlab_ip_address }}
+    restart: unless-stopped
+
+  gitlab-runner:
+    image: {{ runner_image }}
+    container_name: {{ runner_container_name }}
+    extra_hosts:
+      - "{{ gitlab_hostname }}:{{ gitlab_ip_address }}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - gitlab_runner_config_badesaba:/etc/gitlab-runner
+      - gitlab_runner_cache_badesaba:/cache
+      - ./certs:/certs:ro
+    environment:
+      - CA_CERTIFICATES_PATH=/certs/{{ gitlab_hostname }}.crt
+    networks:
+      - {{ network_name }}
+    restart: unless-stopped
+    depends_on:
+      - gitlab
+
+volumes:
+  gitlab_config_badesaba:
+  gitlab_logs_badesaba:
+  gitlab_data_badesaba:
+  gitlab_runner_config_badesaba:
+  gitlab_runner_cache_badesaba:
+    driver: local
+
+networks:
+  {{ network_name }}:
+    name: {{ network_name }}
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: {{ network_subnet }}

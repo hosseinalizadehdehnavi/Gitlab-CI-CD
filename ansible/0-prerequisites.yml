@@ -1,0 +1,36 @@
+---
+- name: Prerequisites - Ensure Docker Service and Pull Images
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: no
+
+  tasks:
+    - name: Ensure Docker service is started and enabled
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: yes
+      tags:
+        - docker_service
+
+    - name: Pull GitLab CE image
+      community.docker.docker_image:
+        name: "{{ gitlab_image }}"
+        source: pull
+      tags:
+        - pull_images 
+
+    - name: Pull GitLab Runner image
+      community.docker.docker_image:
+        name: "{{ runner_image }}"
+        source: pull
+      tags:
+        - pull_images 
+
+    - name: Pull Trivy image for security scanning
+      community.docker.docker_image:
+        name: "{{ trivy_image }}"
+        source: pull
+      tags:
+        - pull_images 

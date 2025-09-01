@@ -1,0 +1,121 @@
+stages:
+  - build
+  - test
+  - deploy
+
+
+build_vote_service:
+  stage: build
+  tags:
+    - develop
+  image: docker:20.10.16-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - echo "Building the vote service..."
+    - cd vote
+    - docker build -t "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA" .
+    - echo "Pushing image to the registry..."
+    - docker push "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - vote/**/*
+
+build_result_service:
+  stage: build
+  tags:
+    - develop
+  image: docker:20.10.16-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - echo "Building the result service..."
+    - cd result
+    - docker build -t "$CI_REGISTRY_IMAGE/result:$CI_COMMIT_SHORT_SHA" .
+    - echo "Pushing image to the registry..."
+    - docker push "$CI_REGISTRY_IMAGE/result:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - result/**/*
+
+build_seed-data_service:
+  stage: build
+  tags:
+    - develop
+  image: docker:20.10.16-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - echo "Building the seed-data service..."
+    - cd seed-data
+    - docker build -t "$CI_REGISTRY_IMAGE/seed-data:$CI_COMMIT_SHORT_SHA" .
+    - echo "Pushing image to the registry..."
+    - docker push "$CI_REGISTRY_IMAGE/seed-data:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - seed-data/**/*
+
+build_worker_service:
+  stage: build
+  tags:
+    - develop
+  image: docker:20.10.16-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - echo "Building the worker service..."
+    - cd worker
+    - docker build -t "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA" .
+    - echo "Pushing image to the registry..."
+    - docker push "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - worker/**/*
+
+
+deploy_staging:
+  stage: deploy
+  tags:
+    - develop
+  image: docker:20.10.16-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - echo "Deploying to Staging environment..."
+    - docker stop voting-app-staging || true
+    - docker rm voting-app-staging || true
+    - docker pull "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA"
+    - docker run -d --name voting-app-staging -p 8080:80 "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - vote/**/*
+        - seed-data/**/*
+        - result/**/*
+        - worker/**/*
+
+deploy_production:
+  stage: deploy
+  tags:
+    - develop
+  image: docker:20.10.16-dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - echo "Deploying to Production environment..."
+    - docker stop voting-app-production || true
+    - docker rm voting-app-production || true
+    - docker pull "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA"
+    - docker run -d --name voting-app-production -p 8081:80 "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA"
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - vote/**/*
+        - seed-data/**/*
+        - result/**/*
+        - worker/**/*

@@ -1,0 +1,44 @@
+# CI/CD Tools
+gitlab_image: "gitlab/gitlab-ce:18.3.0-ce.0"
+runner_image: "gitlab/gitlab-runner:v18.3.0"
+trivy_image: "aquasec/trivy:0.65.0"
+
+
+# --- Global & Versioning ---
+# config_version: "v<Number>"
+gitlab_hostname: "gitlab.badesaba.ir"
+gitlab_base_dir: "/srv/gitlab"
+
+# --- GitLab Service Configuration ---
+gitlab_container_name: "gitlab"
+gitlab_root_password: "@Hassan1400"  # Note: Use Ansible Vault for production
+gitlab_external_url: "https://{{ gitlab_hostname }}"
+gitlab_letsencrypt_enable: true
+
+# --- GitLab Port Mapping ---
+gitlab_http_port: "80"
+gitlab_https_port: "443"
+gitlab_ssh_port: "2244"
+gitlab_registry_port: "5050"
+gitlab_registry_external_url: "https://{{ gitlab_hostname }}:{{ gitlab_registry_port }}"
+
+# --- GitLab Runner Service Configuration ---
+runner_container_name: "gitlab-runner"
+
+# --- Network Configuration ---
+network_name: "gitlab_network_badesaba"
+network_subnet: "172.26.0.0/24"
+gitlab_ip_address: "172.26.0.2"
+
+# --- Runner Registration & Configuration ---
+runner_description: "docker-runner"
+runner_executor: "docker"
+runner_docker_image: "alpine:latest"
+certs_dir: "{{ gitlab_base_dir }}/certs"
+cert_file_path: "{{ certs_dir }}/{{ gitlab_hostname }}.crt"
+config_file_in_container: "/etc/gitlab-runner/config.toml"
+
+# --- Unused GitLab Services ---
+gitlab_prometheus_enable: false
+gitlab_alertmanager_enable: false
+gitlab_kas_enable: false

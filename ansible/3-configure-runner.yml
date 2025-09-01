@@ -1,0 +1,62 @@
+---
+- name: Configure GitLab Runner --- /etc/gitlab-runner/config.toml
+  hosts: localhost
+  connection: local
+  become: yes
+
+  tasks:
+    - name: "Enable privileged mode"
+      community.docker.docker_container_exec:
+        container: "{{ runner_container_name }}"
+        command: >
+          sed -i '/^\s*privileged = false/s/false/true/' {{ config_file_in_container }}
+      tags:
+        - config_update
+
+    - name: "Add extra_hosts"
+      community.docker.docker_container_exec:
+        container: "{{ runner_container_name }}"
+        command: >
+          sed -i '/\[runners.docker\]/a \ \ extra_hosts = ["{{ gitlab_hostname }}:{{ gitlab_ip_address }}"]' {{ config_file_in_container }}
+      tags:
+        - config_update
+
+    - name: "Set network_mode"
+      community.docker.docker_container_exec:
+        container: "{{ runner_container_name }}"
+        command: >
+          sed -i '/\[runners.docker\]/a \ \ network_mode = "gitlab-network_{{ config_version }}"' {{ config_file_in_container }}
+      tags:
+        - config_update
+
+    - name: "Add pull_policy"
+      community.docker.docker_container_exec:
+        container: "{{ runner_container_name }}"
+        command: >
+          sed -i '/\[runners.docker\]/a \ \ pull_policy = "if-not-present"' {{ config_file_in_container }}
+      tags:
+        - config_update
+
+    - name: "Set concurrent = 4"
+      community.docker.docker_container_exec:
+        container: "{{ runner_container_name }}"
+        command: >
+          sed -i 's/concurrent = .*/concurrent = 4/' {{ config_file_in_container }}
+      tags:
+        - config_update
+
+    - name: "Add docker.sock to volumes"
+      community.docker.docker_container_exec:
+        container: "{{ runner_container_name }}"
+        command: >
+          sed -i 's|volumes = \["/cache"\]|volumes = \["/var/run/docker.sock:/var/run/docker.sock", "/cache"\]|g' {{ config_file_in_container }}
+      tags:
+        - config_update
+
+    - name: "Restart the GitLab Runner to apply all changes"
+      ansible.builtin.shell:
+        cmd: docker compose restart {{ runner_container_name }}
+        chdir: "{{ gitlab_base_dir }}"
+      changed_when: true
+      tags:
+        - service_restart

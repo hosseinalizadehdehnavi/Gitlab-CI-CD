@@ -1,0 +1,34 @@
+services:
+  vote:
+    image: ${CI_REGISTRY_IMAGE}/vote:${CI_COMMIT_SHORT_SHA}
+    ports: ["6000:80"]
+    depends_on: [redis]
+    networks: [front-tier, back-tier]
+  result:
+    image: ${CI_REGISTRY_IMAGE}/result:${CI_COMMIT_SHORT_SHA}
+    ports: ["6001:80"]
+    depends_on: [db]
+    networks: [front-tier, back-tier]
+  worker:
+    image: ${CI_REGISTRY_IMAGE}/worker:${CI_COMMIT_SHORT_SHA}
+    depends_on: [redis, db]
+    networks: [back-tier]
+  redis:
+    image: redis:alpine
+    networks: [back-tier]
+  db:
+    image: postgres:15-alpine
+    environment: {POSTGRES_HOST_AUTH_METHOD: trust}
+    volumes: ["db-data-prod:/var/lib/postgresql/data"]
+    networks: [back-tier]
+  seed:
+    image: ${CI_REGISTRY_IMAGE}/seed-data:${CI_COMMIT_SHORT_SHA}
+    depends_on: [db]
+    networks: [back-tier]
+
+volumes:
+  db-data-prod:
+
+networks:
+  front-tier:
+  back-tier:
