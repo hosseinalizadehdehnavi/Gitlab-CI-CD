@@ -4,7 +4,7 @@
 
 This project demonstrates a complete, end-to-end automation of a CI/CD infrastructure for a sample microservices application (Voting App). The entire infrastructure, including a GitLab server and a dedicated GitLab Runner, was provisioned automatically using Ansible, adhering to Infrastructure as Code (IaC) principles.
 
-Two versions of a sophisticated CI/CD pipeline were designed. The primary, tested version (`v1`) features intelligent, change-based builds and simulated multi-environment deployments. An advanced version (`v2`) was also developed to demonstrate a more production-ready pattern using SSH-based deployments with Docker Compose and integrated security scanning with Trivy.
+Two versions of a sophisticated and fully tested CI/CD pipeline were designed. The primary version (v1) features intelligent, change-based builds and simulated local deployments. An advanced version (v2) was also developed and successfully validated in a simulated environment to demonstrate a more production-ready pattern using SSH-based deployments with Docker Compose and integrated security scanning.
 
 **Key Technologies Used:** GitLab, GitLab Runner, Ansible, Docker, Docker Compose, Trivy.
 
@@ -103,9 +103,9 @@ This is the primary, fully operational pipeline submitted as the main deliverabl
     * **Staging:** Deployment to the staging environment (running on port `8080`) is triggered automatically on every push to the `main` branch where code changes are detected.
     * **Production:** Deployment to the production environment (running on port `8081`) is controlled by a `when: manual` rule, requiring manual approval from the GitLab UI to proceed.
 
-### Pipeline Implementation v2 (Advanced & Professional Pattern)
+### Pipeline Implementation v2 (Advanced & Validate)
 
-This version, defined in `.gitlab-ci.yml-v2`, was developed to showcase a more realistic and production-ready CI/CD workflow. It was not fully tested due to external constraints (lack of a remote server and network sanctions).
+This version, defined in .gitlab-ci.yml-v2, showcases a more realistic and production-ready CI/CD workflow.This end-to-end test successfully validated the entire process, including secure SSH connectivity, credential handling, and remote execution of Docker Compose commands.
 
 * **Real-World Deployment Strategy:** This pipeline deploys the entire application stack using **SSH and Docker Compose**. It copies a `docker-compose.yml` manifest to a target server and runs `docker compose up`, which is a standard industry practice.
 * **Integrated Security Scanning:** A dedicated `test` stage is included, which uses **Trivy** to scan newly built Docker images for `HIGH` and `CRITICAL` vulnerabilities. The pipeline is configured to fail and halt immediately if any critical vulnerabilities are discovered, acting as a security gate.
