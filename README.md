@@ -110,6 +110,24 @@ This version, defined in `.gitlab-ci.yml-v2`, was developed to showcase a more r
 * **Real-World Deployment Strategy:** This pipeline deploys the entire application stack using **SSH and Docker Compose**. It copies a `docker-compose.yml` manifest to a target server and runs `docker compose up`, which is a standard industry practice.
 * **Integrated Security Scanning:** A dedicated `test` stage is included, which uses **Trivy** to scan newly built Docker images for `HIGH` and `CRITICAL` vulnerabilities. The pipeline is configured to fail and halt immediately if any critical vulnerabilities are discovered, acting as a security gate.
 
+#### Prerequisites for v2 Pipeline
+
+To run the v2 pipeline (`.gitlab-ci.yml-v2`), which performs real deployments via SSH, you must configure the following CI/CD variables in your GitLab project settings (`Settings > CI/CD > Variables`).
+
+This pipeline requires these variables to securely connect to your remote deployment server.
+
+1.  **`ID_RSA`**
+    * **Description:** The **private SSH key** used to authenticate with the deployment server. This key must correspond to a public key that has been added to the `authorized_keys` file on the server for the deployment user.
+    * **Flags:** For security, this variable should be set as **`Protected`** and **`Masked`**.
+
+2.  **`SERVER_USER`**
+    * **Description:** The **username** for logging into the deployment server via SSH.
+    * **Example:** `ubuntu` or `deploy_user`.
+
+3.  **`SERVER_IP`**
+    * **Description:** The public **IP address** of the remote deployment server.
+    * **Example:** `194.113.72.110`.
+
 ## Challenges & Decisions
 
 This section describes some of the key technical challenges encountered during the project and the strategic decisions made to overcome them. The final configuration is the result of a systematic debugging process and adherence to the principles of “infrastructure as code.”
