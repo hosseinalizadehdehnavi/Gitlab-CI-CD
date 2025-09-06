@@ -25,7 +25,7 @@
       community.docker.docker_container_exec:
         container: "{{ runner_container_name }}"
         command: >
-          sed -i '/\[runners.docker\]/a \ \ network_mode = "gitlab-network_{{ config_version }}"' {{ config_file_in_container }}
+          sed -i '/\[runners.docker\]/a \ \ network_mode = "gitlab_network_badesaba"' {{ config_file_in_container }}
       tags:
         - config_update
 
