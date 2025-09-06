@@ -1,29 +1,56 @@
 services:
   vote:
-    image: ${CI_REGISTRY_IMAGE}/vote:${CI_COMMIT_SHORT_SHA}
+    image: ${CI_REGISTRY_IMAGE}/vote:latest
     ports: ["5000:80"]
-    depends_on: [redis]
+    depends_on:
+      redis:
+        condition: service_healthy
     networks: [front-tier, back-tier]
+
   result:
-    image: ${CI_REGISTRY_IMAGE}/result:${CI_COMMIT_SHORT_SHA}
+    image: ${CI_REGISTRY_IMAGE}/result:latest
     ports: ["5001:80"]
-    depends_on: [db]
+    depends_on:
+      db:
+        condition: service_healthy
     networks: [front-tier, back-tier]
+
   worker:
-    image: ${CI_REGISTRY_IMAGE}/worker:${CI_COMMIT_SHORT_SHA}
-    depends_on: [redis, db]
+    image: ${CI_REGISTRY_IMAGE}/worker:latest
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
     networks: [back-tier]
+
   redis:
     image: redis:alpine
     networks: [back-tier]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   db:
     image: postgres:15-alpine
-    environment: {POSTGRES_HOST_AUTH_METHOD: trust}
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
     volumes: ["db-data-staging:/var/lib/postgresql/data"]
     networks: [back-tier]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   seed:
-    image: ${CI_REGISTRY_IMAGE}/seed-data:${CI_COMMIT_SHORT_SHA}
-    depends_on: [db]
+    image: ${CI_REGISTRY_IMAGE}/seed-data:latest
+    depends_on:
+      db:
+        condition: service_healthy
     networks: [back-tier]
 
 volumes:
@@ -32,3 +59,5 @@ volumes:
 networks:
   front-tier:
   back-tier:
+
+
