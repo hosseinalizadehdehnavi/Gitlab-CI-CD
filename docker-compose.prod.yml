@@ -38,7 +38,7 @@ services:
     environment:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
-    volumes: ["db-data-staging:/var/lib/postgresql/data"]
+    volumes: ["db-data-prod:/var/lib/postgresql/data"]
     networks: [back-tier]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -54,7 +54,7 @@ services:
     networks: [back-tier]
 
 volumes:
-  db-data-staging:
+  db-data-prod:
 
 networks:
   front-tier:
