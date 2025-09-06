@@ -14,9 +14,10 @@ build_vote_service:
   script:
     - echo "Building the vote service..."
     - cd vote
-    - docker build -t "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA" .
+    - docker build -t "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/vote:latest" .
     - echo "Pushing image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE/vote:latest"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       changes:
@@ -32,9 +33,10 @@ build_result_service:
   script:
     - echo "Building the result service..."
     - cd result
-    - docker build -t "$CI_REGISTRY_IMAGE/result:$CI_COMMIT_SHORT_SHA" .
+    - docker build -t "$CI_REGISTRY_IMAGE/result:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/result:latest" .
     - echo "Pushing image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/result:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE/result:latest"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       changes:
@@ -50,9 +52,10 @@ build_seed-data_service:
   script:
     - echo "Building the seed-data service..."
     - cd seed-data
-    - docker build -t "$CI_REGISTRY_IMAGE/seed-data:$CI_COMMIT_SHORT_SHA" .
+    - docker build -t "$CI_REGISTRY_IMAGE/seed-data:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/seed-data:latest".
     - echo "Pushing image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/seed-data:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE/seed-data:latest"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       changes:
@@ -68,9 +71,10 @@ build_worker_service:
   script:
     - echo "Building the worker service..."
     - cd worker
-    - docker build -t "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA" .
+    - docker build -t "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/worker:latest".
     - echo "Pushing image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE/worker:latest"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       changes:
@@ -106,6 +110,7 @@ container_scanning:
         - seed-data/**/*
         - worker/**/*
 
+
 deploy_staging:
   stage: deploy
   image: alpine:latest
@@ -118,7 +123,7 @@ deploy_staging:
     - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY"
     - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /srv/voting-app-staging"
     - scp -i id_rsa -o StrictHostKeyChecking=no ./docker-compose.staging.yml $SERVER_USER@$SERVER_IP:/srv/voting-app-staging/docker-compose.yml
-    - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd /srv/voting-app-staging && export CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE && export CI_COMMIT_SHORT_SHA=$CI_COMMIT_SHORT_SHA && docker compose pull && docker compose up -d --remove-orphans && docker compose run --rm seed"
+    - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd /srv/voting-app-staging && export CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE && docker compose pull && docker compose up -d --remove-orphans && docker compose run --rm seed"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       changes:
@@ -126,7 +131,6 @@ deploy_staging:
         - seed-data/**/*
         - result/**/*
         - worker/**/*
-
 
 deploy_production:
   stage: deploy
@@ -140,7 +144,7 @@ deploy_production:
     - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY"
     - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /srv/voting-app-production"
     - scp -i id_rsa -o StrictHostKeyChecking=no ./docker-compose.prod.yml $SERVER_USER@$SERVER_IP:/srv/voting-app-production/docker-compose.yml
-    - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd /srv/voting-app-production && export CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE && export CI_COMMIT_SHORT_SHA=$CI_COMMIT_SHORT_SHA && docker compose pull && docker compose up -d --remove-orphans && docker compose run --rm seed"
+    - ssh -i id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd /srv/voting-app-production && export CI_REGISTRY_IMAGE=$CI_REGISTRY_IMAGE && docker compose pull && docker compose up -d --remove-orphans && docker compose run --rm seed"
   when: manual
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
