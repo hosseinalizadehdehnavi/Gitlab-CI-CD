@@ -52,7 +52,7 @@ build_seed-data_service:
   script:
     - echo "Building the seed-data service..."
     - cd seed-data
-    - docker build -t "$CI_REGISTRY_IMAGE/seed-data:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/seed-data:latest".
+    - docker build -t "$CI_REGISTRY_IMAGE/seed-data:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/seed-data:latest" .
     - echo "Pushing image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/seed-data:$CI_COMMIT_SHORT_SHA"
     - docker push "$CI_REGISTRY_IMAGE/seed-data:latest"
@@ -71,7 +71,7 @@ build_worker_service:
   script:
     - echo "Building the worker service..."
     - cd worker
-    - docker build -t "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/worker:latest".
+    - docker build -t "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE/worker:latest" .
     - echo "Pushing image to the registry..."
     - docker push "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA"
     - docker push "$CI_REGISTRY_IMAGE/worker:latest"
@@ -95,13 +95,13 @@ container_scanning:
     GIT_STRATEGY: none
   script:
     - echo "Scanning vote service image for CRITICAL and HIGH vulnerabilities..."
-    - trivy image --exit-code 1 --severity CRITICAL,HIGH "$CI_REGISTRY_IMAGE/vote:$CI_COMMIT_SHORT_SHA"
+    - trivy image --exit-code 1 --severity CRITICAL,HIGH "$CI_REGISTRY_IMAGE/vote:latest"
     - echo "Scanning result service image for CRITICAL and HIGH vulnerabilities..."
-    - trivy image --exit-code 1 --severity CRITICAL,HIGH "$CI_REGISTRY_IMAGE/result:$CI_COMMIT_SHORT_SHA"
+    - trivy image --exit-code 1 --severity CRITICAL,HIGH "$CI_REGISTRY_IMAGE/result:latest"
     - echo "Scanning seed-data service image for CRITICAL and HIGH vulnerabilities..."
-    - trivy image --exit-code 1 --severity CRITICAL,HIGH "$CI_REGISTRY_IMAGE/seed-data:$CI_COMMIT_SHORT_SHA"
+    - trivy image --exit-code 1 --severity CRITICAL,HIGH "$CI_REGISTRY_IMAGE/seed-data:latest"
     - echo "Scanning worker service image for CRITICAL and HIGH vulnerabilities..."
-    - trivy image --exit-code 1 --severity CRITICAL,HIGH "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA"
+    - trivy image --exit-code 1 --severity CRITICAL,HIGH "$CI_REGISTRY_IMAGE/worker:latest"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       changes:
