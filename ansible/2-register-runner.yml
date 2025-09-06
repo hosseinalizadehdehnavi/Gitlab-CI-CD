@@ -25,7 +25,6 @@
         cmd: docker compose restart gitlab-runner
         chdir: "{{ gitlab_base_dir }}"
       changed_when: true
-      changed_when: true
       tags:
         - service_restart
 
