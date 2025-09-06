@@ -176,6 +176,15 @@ This section describes some of the key technical challenges encountered during t
 * **Challenge:** By default, Docker assigns a new internal IP address to containers upon restart. This would make the `extra_hosts` entry in the GitLab Runner's configuration (which maps `gitlab.badesaba.ir` to an IP) invalid after every restart.
 * **Decision:** To guarantee a stable and predictable connection, a static IP address was explicitly assigned to the **GitLab container** within the Docker Compose network configuration. This ensures the `extra_hosts` entry in the runner's configuration remains permanently valid, creating a robust and resilient setup.
 
+### Resolving the `manifest unknown` Error
+* **Challenge:** The initial design, which used commit SHA tags for deployment, failed when only a subset of microservices were changed. The `deploy` stage would try to pull images (e.g., `result:COMMIT_SHA`) that were never built because their source code hadn't changed.
+* **Decision:** The CI/CD logic was harmonized. The `build` stage was updated to tag any newly built image with both its unique commit SHA and a moving `:latest` tag. The deployment process was then simplified to always pull the `:latest` tag of all services. This ensures that the deployment stage always finds a valid image, accepting a trade-off between direct commit traceability in the image tag and a more resilient pipeline.
+
+### Resolving Container-to-Host SSH Connectivity
+* **Challenge:** A critical issue was encountered when testing the v2 pipeline: the job container could not establish an SSH connection to the host server. Standard addresses like `127.0.0.1` failed because they resolve to the container itself, not the host.
+
+* **Decision & Discovery:** The solution required a deep dive into Docker's networking. The root cause was finding the host's IP address *on the custom bridge network*. An interesting discovery was made: while the `docker network inspect` command did not explicitly list a "Gateway" for the network, Docker's bridge driver **implicitly assigns the first usable IP of the defined subnet** to the host. For the `172.26.0.0/24` subnet, this address is `172.26.0.1`. By setting the `SERVER_IP` CI/CD variable to this implicit gateway address, a successful connection was established. This practical test confirmed the default behavior and resolved the connectivity issue, highlighting a subtle but critical aspect of Docker networking.
+
 ## Conclusion
 
 This project successfully demonstrates the end-to-end automation of a complete CI/CD ecosystem. Through the systematic application of Ansible for infrastructure provisioning and a sophisticated `.gitlab-ci.yml` for pipeline orchestration, a fully functional, containerized environment for the Voting App was established.
