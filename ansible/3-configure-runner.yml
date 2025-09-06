@@ -1,7 +1,6 @@
 ---
 - name: Configure GitLab Runner --- /etc/gitlab-runner/config.toml
   hosts: localhost
-  connection: local
   become: yes
 
   tasks:

@@ -1,7 +1,6 @@
 ---
 - name: Register GitLab Runner (Custom Method)
   hosts: localhost
-  connection: local
   become: yes
 
   vars_prompt:

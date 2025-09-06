@@ -1,7 +1,6 @@
 ---
 - name: Prerequisites - Ensure Docker Service and Pull Images
   hosts: localhost
-  connection: local
   become: yes
   gather_facts: no
 

@@ -1,7 +1,6 @@
 ---
 - name: Setup GitLab and Runner from Detailed Compose Template
   hosts: localhost
-  connection: local
   become: yes
   gather_facts: no
 
