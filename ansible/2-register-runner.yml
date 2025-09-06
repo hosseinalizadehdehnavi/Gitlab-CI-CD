@@ -50,7 +50,7 @@
 
     - name: Show registration result
       ansible.builtin.debug:
-        vair: registration_result.stdout
+        var: registration_result.stdout
       tags:
         - register_runner
         - debug
